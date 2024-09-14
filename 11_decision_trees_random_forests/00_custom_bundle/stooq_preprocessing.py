@@ -20,7 +20,7 @@ def create_split_table():
 
 def load_prices():
     df = pd.read_hdf(DATA_DIR / 'assets.h5', 'stooq/jp/tse/stocks/prices')
-
+    
     return (df.loc[idx[:, '2014': '2019'], :]
             .unstack('ticker')
             .sort_index()
@@ -30,6 +30,14 @@ def load_prices():
             .stack('ticker')
             .swaplevel())
 
+    #return (df.loc[idx[:, '2014':'2019'], :]
+    #        .unstack('ticker')
+    #        .sort_index()
+    #        .tz_localize(None)  # Convert to naive if timezone is already present
+    #        .ffill(limit=5)
+    #        .dropna(axis=1, how='all')
+    #        .stack('ticker')
+    #        .swaplevel())
 
 def load_symbols(tickers):
     df = pd.read_hdf(DATA_DIR / 'assets.h5', 'stooq/jp/tse/stocks/tickers')
@@ -41,19 +49,20 @@ def load_symbols(tickers):
 
 if __name__ == '__main__':
     prices = load_prices()
-    print(prices.info(null_counts=True))
+
+    print(prices.info())
     tickers = prices.index.unique('ticker')
 
     symbols = load_symbols(tickers)
-    print(symbols.info(null_counts=True))
+    print(symbols.info())
     symbols.to_hdf('stooq.h5', 'jp/equities', format='t')
 
     dates = prices.index.unique('date')
     start_date = dates.min()
     end_date = dates.max()
 
-    for sid, symbol in symbols.set_index('sid').symbol.items():
-        p = prices.loc[symbol]
+    for sid, ticker in symbols.set_index('sid').ticker.items():
+        p = prices.loc[ticker]
         p.to_hdf('stooq.h5', 'jp/{}'.format(sid), format='t')
 
     with pd.HDFStore('stooq.h5') as store:

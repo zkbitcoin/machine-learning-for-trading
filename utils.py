@@ -6,7 +6,6 @@ import numpy as np
 
 np.random.seed(42)
 
-
 def format_time(t):
     """Return a formatted time string 'HH:MM:SS
     based on a numeric time() value"""
@@ -35,6 +34,15 @@ class MultipleTimeSeriesCV:
         self.date_idx = date_idx
 
     def split(self, X, y=None, groups=None):
+
+        def safe_index(index, length):
+            """ Ensure index is within valid range. """
+            if index < 0:
+                return 0
+            elif index >= length:
+                return length - 1
+            return index
+
         unique_dates = X.index.get_level_values(self.date_idx).unique()
         days = sorted(unique_dates, reverse=True)
         split_idx = []
@@ -47,8 +55,10 @@ class MultipleTimeSeriesCV:
                               test_start_idx, test_end_idx])
 
         dates = X.reset_index()[[self.date_idx]]
-        for train_start, train_end, test_start, test_end in split_idx:
+        num_days = len(days)
 
+        for train_start, train_end, test_start, test_end in split_idx:
+            train_start = safe_index(train_start, num_days)
             train_idx = dates[(dates[self.date_idx] > days[train_start])
                               & (dates[self.date_idx] <= days[train_end])].index
             test_idx = dates[(dates[self.date_idx] > days[test_start])
